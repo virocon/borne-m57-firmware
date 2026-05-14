@@ -124,13 +124,13 @@
                 
                 {"matrix": [9, 1], "x": 8, "y": 3.7},
                 {"matrix": [9, 2], "x": 9, "y": 3.7},
-                {"matrix": [9, 3], "x": 8, "y": 0.2},
+                {"matrix": [9, 3], "x": 8, "y": 0.2}
             
 
             ]
-        },
+        }
     },
-    "ws2812": {
+    "ws2812":{
         "driver": "pwm",
         "pin": "A7"
     },
@@ -139,6 +139,21 @@
         "led_count": 58,
         "split": true,
         "split_count": [29, 29],
+        "_brightness_guide": {
+            "_note": "58 WS2812 LEDs total (29/side). MCU draws ~100mA — subtract from USB budget first. Per-LED draw at brightness 255: white(R+G+B)=60mA, 2-ch(yellow/cyan/magenta)=40mA, 1-ch(red/green/blue)=20mA. WORST=all 58 LEDs same color. TYPICAL=~50% active (realistic animation).",
+            "_white_risk": "At brightness=255 all-white: ~3480mA — 7x USB2 limit. Guaranteed USB disconnect and possible host port damage. Vendor default of 50 already exceeds USB2 worst-case; it is safe only because full-white on all 58 LEDs rarely happens in practice.",
+            "_max_brightness_table": {
+                "_columns":                    ["white", "yellow/cyan/magenta", "red/green/blue"],
+                "_mA_per_LED_at_255":          [  60,          40,                  20          ],
+                "_mA_all_58_at_255":           [3480,        2320,                1160          ],
+                "USB2_500mA_WORST_all_on":     [  29,          43,                  87          ],
+                "USB2_500mA_TYPICAL_50pct":    [  50,          80,                 150          ],
+                "USB3_900mA_WORST_all_on":     [  58,          87,                 175          ],
+                "USB3_900mA_TYPICAL_50pct":    [ 100,         150,                 255          ],
+                "USB_C_1A5_WORST_all_on":      [ 102,         153,                 255          ],
+                "USB_C_1A5_TYPICAL_50pct":     [ 180,         255,                 255          ]
+            }
+        },
         "max_brightness": 50,
         "animations": {
             "alphas_mods": true,

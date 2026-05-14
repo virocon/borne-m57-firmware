@@ -1,7 +1,7 @@
 {
   "name": "BORNE",
-  "vendorId": "0x45D4",
-  "productId": "0x1B32",
+  "vendorId": "0x6401",
+  "productId": "0x45D4",
     "matrix": {"rows": 10, "cols": 7},
     "lighting": "vialrgb",
   "customKeycodes": [
