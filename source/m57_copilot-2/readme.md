@@ -78,6 +78,37 @@ Modify only this array to change indicator keys. `INDICATOR_COUNT` adapts automa
 
 Cycle: `(preset + 1) % PRESET_COUNT` / `(preset + PRESET_COUNT - 1) % PRESET_COUNT`
 
+## RGB Brightness Guide
+
+Hardware: **58 WS2812 LEDs** (29 per side). MCU draws ~100 mA total (both halves via split cable), leaving the following LED budgets:
+
+| USB standard | Total | LED budget |
+|---|---|---|
+| USB 2.0 | 500 mA | 400 mA |
+| USB 3.0 | 900 mA | 800 mA |
+| USB-C 1.5 A | 1500 mA | 1400 mA |
+
+Per-LED current at full brightness (255): White = 60 mA · Yellow/Cyan/Magenta = 40 mA · Red/Green/Blue = 20 mA
+
+Formula: `max_brightness = floor(LED_budget_mA / (58 × mA_per_LED_at_255) × 255)`
+
+### Safe `max_brightness` values (0–255)
+
+**WORST** = all 58 LEDs same color at once &nbsp;·&nbsp; **TYPICAL** = ~50 % of LEDs active (realistic for animations)
+
+| Color                          | mA/LED @255 | USB 2.0 worst | USB 2.0 typical | USB 3.0 worst | USB 3.0 typical | USB-C 1.5 A worst | USB-C 1.5 A typical |
+|--------------------------------|-------------|---------------|-----------------|---------------|-----------------|-------------------|---------------------|
+| White (R+G+B)                  | 60          | 29            | 50              | 58            | 100             | 102               | 180                 |
+| Yellow / Cyan / Magenta (2-ch) | 40          | 43            | 80              | 87            | 150             | 153               | 255                 |
+| Red / Green / Blue (1-ch)      | 20          | 87            | 150             | 175           | 255             | 255               | 255                 |
+
+### ⚠️ White at max brightness
+
+At `max_brightness = 255` all-white: **~3 480 mA** — 7× the USB 2.0 limit.  
+This **will** cause USB disconnect and may damage the host port.
+
+The vendor default of **50** is calibrated for USB 2.0 and is safe only because full-white on all 58 LEDs rarely fires simultaneously. To change, edit `"max_brightness"` in `info.json` → `"rgb_matrix"`.
+
 ## Feature Toggles
 
 Features are controlled via bitmask flags — disable any subsystem without removing code:
