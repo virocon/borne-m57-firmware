@@ -112,7 +112,19 @@ HIGH → RIGHT half
 #define SPLIT_WATCHDOG_TIMEOUT 3000
 #define SPLIT_WATCHDOG_ENABLE
 
-#define USB_POLLING_INTERVAL_MS 1
+/*
+ * USB polling interval. Lower = more responsive, but more USB interrupts → less CPU sleep.
+ * Keyboard debounce (typically 5–20 ms) is the real latency floor, so sub-debounce
+ * polling adds no input quality gain but keeps the CPU busier.
+ *
+ * Value | Rate     | USB interrupts/s | Sleep impact  | Notes
+ * ------|----------|------------------|---------------|-------------------------------
+ *   1   | 1000 Hz  |      1000        | minimal       | USB spec max; vendor default
+ *   4   | 250 Hz   |       250        | ~4× better    | sweet spot for gaming use
+ *   8   | 125 Hz   |       125        | ~8× better    | standard HID; good balance ← chosen
+ *  10   | 100 Hz   |       100        | ~10× better   | QMK default
+ */
+#define USB_POLLING_INTERVAL_MS 8
 
 
 // ============================================================
