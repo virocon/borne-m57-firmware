@@ -10,6 +10,15 @@ ENCODER_MAP_ENABLE = yes
 VIAL_INSECURE = yes
 
 # ============================================================
+# CONSOLE / DEBUG OUTPUT
+# ============================================================
+
+# Uncomment to enable uprintf() output (reads via 'qmk console').
+# Also set DEBUG_LEVEL in keymap.c to DEBUG_INFO or higher.
+# Keep disabled for production — saves ~2 KB flash.
+#CONSOLE_ENABLE = yes
+
+# ============================================================
 # VIAL RGB CONTROL (UI LAYER)
 # ============================================================
 

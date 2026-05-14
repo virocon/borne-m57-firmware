@@ -64,22 +64,27 @@ Matrix wiring:
 #define SERIAL_USART_RX_PAL_MODE 7
 #define SERIAL_USART_TIMEOUT 20
 
+// SERIAL_USART_PIN_SWAP swaps TX and RX roles in firmware (A9↔A10) without
+// changing physical wiring. Normally not needed with SERIAL_USART_FULL_DUPLEX
+// because both halves talk and listen simultaneously — there is no "master
+// transmits first" handshake that could break.
+//
+// Enable ONLY if, after removing MASTER_RIGHT (dynamic USB master), plugging
+// USB into the LEFT half results in garbled keypresses or the right half being
+// unresponsive. That symptom means the left-as-master path is driving the wrong
+// pin direction; uncommenting this line will fix it.
+//#define SERIAL_USART_PIN_SWAP
+
 
 // ============================================================
-// SPLIT MASTER CONFIGURATION (DUAL USB SUPPORT)
+// SPLIT MASTER CONFIGURATION
 // ============================================================
 
-//#define MASTER_RIGHT   // DISABLED → dynamic master selection
-
-/*
-Dynamic split behavior:
-
-- USB plugged LEFT  → LEFT becomes master
-- USB plugged RIGHT → RIGHT becomes master
-
-IMPORTANT:
-Do NOT plug USB into both halves simultaneously.
-*/
+// MASTER_RIGHT is intentionally NOT defined.
+// SPLIT_USB_DETECT (below) determines the master at boot:
+//   - USB plugged into LEFT  → left becomes master
+//   - USB plugged into RIGHT → right becomes master
+// Do NOT connect USB to both halves at the same time.
 
 
 // ============================================================

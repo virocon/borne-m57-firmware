@@ -1,12 +1,11 @@
 #include QMK_KEYBOARD_H
-#include QMK_KEYBOARD "theme.h"
+#include "theme.h"
 #include "eeconfig.h"
-#include <avr/eeprom.h>
 #include "print.h"
 
 
 // ============================================================
-// DEBUG LOG SYSTEM (ADDED)
+// DEBUG LOG SYSTEM
 // ============================================================
 
 #define DEBUG_NONE    0
@@ -16,115 +15,66 @@
 #define DEBUG_VERBOSE 4
 
 #ifndef DEBUG_LEVEL
-#define DEBUG_LEVEL DEBUG_INFO
-#endif
+#  define DEBUG_LEVEL DEBUG_NONE  // silent by default; set to DEBUG_INFO or higher
+#endif                            // and enable CONSOLE_ENABLE = yes in rules.mk
 
 #define LOG(level, fmt, ...) \
     do { if (DEBUG_LEVEL >= level) uprintf(fmt "\n", ##__VA_ARGS__); } while (0)
 
 
 // ============================================================
-// CUSTOM MODE SYSTEM DESIGN
+// CUSTOM MODE IDENTIFIERS
 // ============================================================
 
 /*
-Mode = behavior (what layers run)
-Theme = colors (how it looks)
-
-These are intentionally decoupled:
-→ same mode can use different themes
-→ same theme can be used across modes
-*/
-
-#define RGB_MODE_UI      "FIRMWARE UI"
-#define RGB_MODE_DEBUG   "DEBUG MODE"
-#define RGB_MODE_GAMING  "GAMING MODE"
-
-#ifdef RGB_MATRIX_CUSTOM_USER
-const char* rgb_matrix_name_for_cust[] = {
-    RGB_MODE_UI,
-    RGB_MODE_DEBUG,
-    RGB_MODE_GAMING
-};
-#endif
+ * Mode = behavior (what the render pipeline does)
+ * Theme = colors (which rgb_theme_t profile is active)
+ *
+ * Decoupled intentionally: same mode can use different themes
+ * and vice versa.
+ */
 
 typedef enum {
-    CUSTOM_MODE_UI,
+    CUSTOM_MODE_UI     = 0,
     CUSTOM_MODE_DEBUG,
     CUSTOM_MODE_GAMING,
     CUSTOM_MODE_COUNT
 } custom_mode_t;
 
-static uint8_t current_custom_mode = CUSTOM_MODE_UI;
+static custom_mode_t current_custom_mode = CUSTOM_MODE_UI;
 
 
 // ============================================================
-// OS STATE SYSTEM (EEPROM)
+// OS STATE
 // ============================================================
 
 typedef enum {
-    OS_LINUX,
+    OS_LINUX   = 0,
     OS_WINDOWS,
     OS_MAC,
     OS_ANDROID,
     OS_COUNT
 } os_type_t;
 
-static os_type_t current_os = OS_WINDOWS;
-
-#define EEPROM_OS_ADDR (uint8_t*)(EECONFIG_USER + 0)
-
-static void load_os_from_eeprom(void) {
-    uint8_t stored = eeprom_read_byte(EEPROM_OS_ADDR);
-    current_os = (stored < OS_COUNT) ? stored : OS_WINDOWS;
-
-    LOG(DEBUG_INFO, "[OS] loaded=%d", current_os);
-}
-
-static void save_os_to_eeprom(void) {
-    eeprom_update_byte(EEPROM_OS_ADDR, current_os);
-
-    LOG(DEBUG_INFO, "[OS] saved=%d", current_os);
-}
-
 
 // ============================================================
-// THEME STATE SYSTEM (EEPROM)
+// EEPROM USER CONFIG  (packed into one uint32_t for eeconfig API)
 // ============================================================
 
-static uint8_t current_theme_index = CUSTOM_MODE_UI;
+typedef union {
+    uint32_t raw;
+    struct {
+        uint8_t os_type : 8;
+        uint8_t theme   : 8;
+    };
+} user_config_t;
 
-#define EEPROM_THEME_ADDR (uint8_t*)(EECONFIG_USER + 1)
+static user_config_t user_config;
 
-static void load_theme_from_eeprom(void) {
-    uint8_t stored = eeprom_read_byte(EEPROM_THEME_ADDR);
-    current_theme_index =
-        (stored < CUSTOM_MODE_COUNT) ? stored : CUSTOM_MODE_UI;
-
-    LOG(DEBUG_INFO, "[THEME] loaded=%d", current_theme_index);
-}
-
-static void save_theme_to_eeprom(void) {
-    eeprom_update_byte(EEPROM_THEME_ADDR, current_theme_index);
-
-    LOG(DEBUG_INFO, "[THEME] saved=%d", current_theme_index);
-}
-
-
-// ============================================================
-// THEME SELECTION
-// ============================================================
-
-static const rgb_theme_t* get_active_theme(void) {
-
-    switch (current_theme_index) {
-        case CUSTOM_MODE_UI:     return &theme_ui;
-        case CUSTOM_MODE_DEBUG:  return &theme_debug;
-        case CUSTOM_MODE_GAMING: return &theme_gaming;
-    }
-
-    LOG(DEBUG_WARN, "[THEME] invalid index=%d fallback UI", current_theme_index);
-    return &theme_ui;
+void eeconfig_init_user(void) {
+    user_config.os_type = OS_WINDOWS;
+    user_config.theme   = CUSTOM_MODE_UI;
+    eeconfig_update_user(user_config.raw);
 }
 
 
@@ -143,225 +93,516 @@ enum custom_keycodes {
 
 
 // ============================================================
-// OS INDICATOR LED ZONE
+// KEYMAPS  (Vial can remap layers 4–9 at runtime)
 // ============================================================
 
-static const uint8_t os_indicator_zone[] = {0,1,2,3};
-#define OS_INDICATOR_LED_COUNT (sizeof(os_indicator_zone))
+const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+
+  [0] = LAYOUT(
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_ESC,  KC_1,    KC_2,    KC_3,   KC_4,   KC_5,                       KC_6,  KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
+   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
+                        KC_LALT, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+                  //`-----------------------------------------'  `-----------------------------------'
+  ),
+
+  [1] = LAYOUT(
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_ESC,  KC_F1,   KC_F2,   KC_F3,  KC_F4,  KC_F5,                      KC_F6, KC_F7,  KC_F8,   KC_F9,  KC_F10,  KC_BSPC,
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
+   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
+                        KC_LCTL, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+  ),
+
+  [2] = LAYOUT(
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_ESC,  KC_1,    KC_2,    KC_3,   KC_4,   KC_5,                       KC_6,  KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
+   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
+                        KC_LCTL, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+  ),
+
+  [3] = LAYOUT(
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_ESC,  KC_1,    KC_2,    KC_3,   KC_4,   KC_5,                       KC_6,  KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
+   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
+   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
+     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
+   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
+                        KC_LCTL, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+  )
+};
 
 
 // ============================================================
-// LED OWNERSHIP HELPERS
+// ENCODER MAP
 // ============================================================
+
+#if defined(ENCODER_MAP_ENABLE)
+const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
+    [0] = { ENCODER_CCW_CW(KC_RIGHT, KC_LEFT),  ENCODER_CCW_CW(KC_VOLD,  KC_VOLU) },
+    [1] = { ENCODER_CCW_CW(RGB_HUD,  RGB_HUI),  ENCODER_CCW_CW(RGB_SAD,  RGB_SAI) },
+    [2] = { ENCODER_CCW_CW(RGB_VAD,  RGB_VAI),  ENCODER_CCW_CW(RGB_SPD,  RGB_SPI) },
+    [3] = { ENCODER_CCW_CW(RGB_RMOD, RGB_MOD),  ENCODER_CCW_CW(KC_RIGHT, KC_LEFT) },
+};
+#endif
+
+
+// ============================================================
+// LED OWNERSHIP  (OS indicator zone — never overwritten by other layers)
+// ============================================================
+
+static const uint8_t os_indicator_zone[] = {0, 1, 2, 3};
+#define OS_INDICATOR_LED_COUNT (sizeof(os_indicator_zone) / sizeof(os_indicator_zone[0]))
 
 static bool is_os_led(uint8_t led) {
     for (uint8_t i = 0; i < OS_INDICATOR_LED_COUNT; i++) {
-        if (os_indicator_zone[i] == led)
-            return true;
+        if (os_indicator_zone[i] == led) return true;
     }
     return false;
 }
 
 
 // ============================================================
-// KEYCODE CACHE SYSTEM
+// KEYCODE CACHE  (rebuilt on layer change; refreshed on timer)
 // ============================================================
 
-static uint16_t led_keycode_cache[DRIVER_LED_TOTAL];
-static uint8_t modifier_leds[DRIVER_LED_TOTAL];
-static uint8_t modifier_count = 0;
+#ifdef RGB_MATRIX_LED_COUNT
+#  define M57_LED_COUNT RGB_MATRIX_LED_COUNT
+#else
+#  define M57_LED_COUNT 58
+#endif
 
-static uint32_t keycode_cache_timer = 0;
+static uint16_t  led_keycode_cache[M57_LED_COUNT];
+static uint32_t  keycode_cache_timer = 0;
 #define KEYCODE_CACHE_REFRESH_INTERVAL 100
 
-
-static void update_keycode_cache(void) {
-
-    uint8_t layer = get_highest_layer(layer_state);
-
-    LOG(DEBUG_VERBOSE, "[CACHE] update layer=%d", layer);
-
-    for (uint8_t i = 0; i < DRIVER_LED_TOTAL; i++) {
-
-        uint8_t row = g_led_config.matrix_co[i][0];
-
-        if (row == NO_LED) {
-            led_keycode_cache[i] = KC_NO;
-            continue;
-        }
-
-        uint8_t col = g_led_config.matrix_co[i][1];
-
-        led_keycode_cache[i] =
-            keymap_key_to_keycode(layer, (keypos_t){row,col});
-    }
-}
-
-
-static void build_modifier_list(void) {
-
-    modifier_count = 0;
-
-    for (uint8_t i = 0; i < DRIVER_LED_TOTAL; i++) {
-        if (get_led_flag(i) & LED_FLAG_MODIFIER)
-            modifier_leds[modifier_count++] = i;
-    }
-
-    LOG(DEBUG_INFO, "[MOD] modifier_count=%d", modifier_count);
-}
+#define MAX_MODIFIER_LEDS 16
+static uint8_t modifier_leds[MAX_MODIFIER_LEDS];
+static uint8_t modifier_led_count = 0;
 
 
 // ============================================================
-// REACTIVE SYSTEM
+// REACTIVE SYSTEM  (keypress fade-out, used in GAMING MODE)
 // ============================================================
 
-#define MAX_REACTIVE 8
+#define MAX_REACTIVE       8
+#define REACTIVE_DECAY_MS  300
 
 typedef struct {
-    uint8_t leds[4];
-    uint8_t count;
-    uint16_t timer;
-} reactive_cluster_t;
+    uint8_t  led;       // 0xFF = slot unused
+    uint32_t timestamp;
+} reactive_event_t;
 
-static reactive_cluster_t reactive_clusters[MAX_REACTIVE];
-static uint8_t reactive_index = 0;
+static reactive_event_t reactive_buffer[MAX_REACTIVE];
+static uint8_t          reactive_index = 0;
 
 
 // ============================================================
-// ENCODER OS SWITCHING
+// BOOT INDICATOR
 // ============================================================
 
-bool encoder_update_user(uint8_t index, bool clockwise) {
+#define BOOT_INDICATOR_DURATION 600
 
-    if (get_highest_layer(layer_state) == 1) {
+static bool     boot_indicator_active = false;
+static uint32_t boot_timer            = 0;
 
-        current_os = clockwise
-            ? (current_os + 1) % OS_COUNT
-            : (current_os == 0 ? OS_COUNT - 1 : current_os - 1);
 
-        LOG(DEBUG_INFO, "[ENC] OS=%d", current_os);
+// ============================================================
+// EEPROM HELPERS
+// ============================================================
 
-        save_os_to_eeprom();
-        return false;
+static void load_config_from_eeprom(void) {
+    user_config.raw = eeconfig_read_user();
+
+    if (user_config.os_type >= OS_COUNT) {
+        user_config.os_type = OS_WINDOWS;
+    }
+    if (user_config.theme >= CUSTOM_MODE_COUNT) {
+        user_config.theme = CUSTOM_MODE_UI;
     }
 
-    return true;
+    LOG(DEBUG_INFO, "[EEPROM] os=%d theme=%d", user_config.os_type, user_config.theme);
+}
+
+static void save_os_to_eeprom(void) {
+    eeconfig_update_user(user_config.raw);
+    LOG(DEBUG_INFO, "[OS] saved=%d", user_config.os_type);
+}
+
+static void save_theme_to_eeprom(void) {
+    eeconfig_update_user(user_config.raw);
+    LOG(DEBUG_INFO, "[THEME] saved=%d", user_config.theme);
 }
 
 
 // ============================================================
-// PROCESS RECORD USER
+// THEME SELECTION
 // ============================================================
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {
-
-    if (!record->event.pressed)
-        return true;
-
-    switch (keycode) {
-        case OS_WINDOWS_SET: current_os = OS_WINDOWS; break;
-        case OS_MAC_SET:     current_os = OS_MAC; break;
-        case OS_LINUX_SET:   current_os = OS_LINUX; break;
-        case OS_ANDROID_SET: current_os = OS_ANDROID; break;
+static const rgb_theme_t* get_active_theme(void) {
+    switch (user_config.theme) {
+        case CUSTOM_MODE_UI:     return &theme_ui;
+        case CUSTOM_MODE_DEBUG:  return &theme_debug;
+        case CUSTOM_MODE_GAMING: return &theme_gaming;
     }
+    LOG(DEBUG_WARN, "[THEME] invalid index=%d, fallback UI", user_config.theme);
+    return &theme_ui;
+}
 
-    if (keycode >= OS_LINUX_SET && keycode <= OS_ANDROID_SET) {
-        LOG(DEBUG_INFO, "[KEY] OS=%d", current_os);
-        save_os_to_eeprom();
-        return false;
-    }
 
-    switch (keycode) {
+// ============================================================
+// CACHE HELPERS
+// ============================================================
 
-        case THEME_NEXT:
-            current_theme_index =
-                (current_theme_index + 1) % CUSTOM_MODE_COUNT;
-            LOG(DEBUG_INFO, "[KEY] THEME_NEXT=%d", current_theme_index);
-            save_theme_to_eeprom();
-            return false;
+/*
+ * All key lookups use keymap_key_to_keycode() so Vial remapping
+ * is respected — never read keymaps[][] directly.
+ */
 
-        case THEME_PREV:
-            current_theme_index =
-                (current_theme_index == 0)
-                ? CUSTOM_MODE_COUNT - 1
-                : current_theme_index - 1;
-            LOG(DEBUG_INFO, "[KEY] THEME_PREV=%d", current_theme_index);
-            save_theme_to_eeprom();
-            return false;
-    }
+static inline bool is_modifier_keycode(uint16_t kc) {
+    return (kc >= KC_LCTL && kc <= KC_RGUI);
+}
 
-    uint8_t row = record->event.key.row;
-    uint8_t col = record->event.key.col;
+static void update_keycode_cache(void) {
+    uint8_t layer = get_highest_layer(layer_state);
+    LOG(DEBUG_VERBOSE, "[CACHE] update layer=%d", layer);
 
-    for (uint8_t i = 0; i < DRIVER_LED_TOTAL; i++) {
-        if (g_led_config.matrix_co[i][0] == row &&
-            g_led_config.matrix_co[i][1] == col) {
-
-            LOG(DEBUG_VERBOSE, "[REACT] LED=%d", i);
-
-            reactive_cluster_t *c =
-                &reactive_clusters[reactive_index];
-
-            c->count = 1;
-            c->timer = timer_read();
-            c->leds[0] = i;
-
-            reactive_index =
-                (reactive_index + 1) % MAX_REACTIVE;
-            break;
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+            uint8_t led = g_led_config.matrix_co[row][col];
+            if (led != NO_LED) {
+                led_keycode_cache[led] =
+                    keymap_key_to_keycode(layer, (keypos_t){.row = row, .col = col});
+            }
         }
     }
+}
 
-    return true;
+static void build_modifier_list(void) {
+    modifier_led_count = 0;
+    for (uint8_t i = 0; i < M57_LED_COUNT && modifier_led_count < MAX_MODIFIER_LEDS; i++) {
+        if (is_modifier_keycode(led_keycode_cache[i])) {
+            modifier_leds[modifier_led_count++] = i;
+        }
+    }
+    LOG(DEBUG_INFO, "[MOD] modifier_count=%d", modifier_led_count);
 }
 
 
 // ============================================================
-// RENDER LAYERS (UNCHANGED)
+// RENDER PIPELINE
 // ============================================================
 
-static void render_flag_base(uint8_t brightness) {
+// Step 1: base color from active theme — OS zone excluded.
+static void render_flag_base(uint8_t led_min, uint8_t led_max) {
     const rgb_theme_t* theme = get_active_theme();
+    uint8_t brightness = rgb_matrix_get_val();
 
-    for (uint8_t i = 0; i < DRIVER_LED_TOTAL; i++) {
+    for (uint8_t i = led_min; i < led_max; i++) {
         if (is_os_led(i)) continue;
         apply_color(i, theme->base, brightness);
     }
 }
 
-// (rest identical — not modified for debug clarity)
+// Step 2: specific action keys highlighted with theme->layer1.
+static void render_key_based(uint8_t led_min, uint8_t led_max) {
+    const rgb_theme_t* theme = get_active_theme();
+    uint8_t brightness = rgb_matrix_get_val();
+
+    for (uint8_t i = led_min; i < led_max; i++) {
+        if (is_os_led(i)) continue;
+        switch (led_keycode_cache[i]) {
+            case KC_ENT:
+            case KC_BSPC:
+            case KC_DEL:
+            case KC_SPC:
+                apply_color(i, theme->layer1, brightness);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+// Step 3: key groups (letters, digits, function keys) with theme->layer2.
+static void render_key_groups(uint8_t led_min, uint8_t led_max) {
+    const rgb_theme_t* theme = get_active_theme();
+    uint8_t brightness = rgb_matrix_get_val();
+
+    for (uint8_t i = led_min; i < led_max; i++) {
+        if (is_os_led(i)) continue;
+        uint16_t kc = led_keycode_cache[i];
+        if ((kc >= KC_A  && kc <= KC_Z)   ||
+            (kc >= KC_1  && kc <= KC_9)   ||
+             kc == KC_0                   ||
+            (kc >= KC_F1 && kc <= KC_F12)) {
+            apply_color(i, theme->layer2, brightness);
+        }
+    }
+}
+
+// Step 4: modifier LEDs — colored by type, dim when idle, bright when held.
+static void render_modifier(uint8_t led_min, uint8_t led_max) {
+    uint8_t mods       = get_mods() | get_oneshot_mods();
+    uint8_t brightness = rgb_matrix_get_val();
+
+    for (uint8_t i = 0; i < modifier_led_count; i++) {
+        uint8_t  led = modifier_leds[i];
+        if (led < led_min || led >= led_max) continue;
+        if (is_os_led(led)) continue;
+
+        uint16_t kc = led_keycode_cache[led];
+        rgb_t    color;
+        bool     active;
+
+        switch (kc) {
+            case KC_LSFT: case KC_RSFT:
+                color  = (mods & MOD_MASK_CTRL)  ? COLOR_MOD_SHIFT_CTRL : COLOR_MOD_SHIFT;
+                active = (mods & MOD_MASK_SHIFT) != 0; break;
+            case KC_LCTL: case KC_RCTL:
+                color  = (mods & MOD_MASK_SHIFT) ? COLOR_MOD_SHIFT_CTRL : COLOR_MOD_CTRL;
+                active = (mods & MOD_MASK_CTRL)  != 0; break;
+            case KC_LALT: case KC_RALT:
+                color  = (mods & MOD_MASK_GUI)   ? COLOR_MOD_ALT_GUI : COLOR_MOD_ALT;
+                active = (mods & MOD_MASK_ALT)   != 0; break;
+            case KC_LGUI: case KC_RGUI:
+                color  = (mods & MOD_MASK_ALT)   ? COLOR_MOD_ALT_GUI : COLOR_MOD_GUI;
+                active = (mods & MOD_MASK_GUI)   != 0; break;
+            default: continue;
+        }
+        apply_color(led, color, active ? brightness : brightness / 4);
+    }
+}
+
+// Step 5: OS indicator zone — always painted last in base pipeline.
+static void render_os(uint8_t led_min, uint8_t led_max) {
+    rgb_t color;
+    switch ((os_type_t)user_config.os_type) {
+        case OS_LINUX:   color = COLOR_OS_LINUX;   break;
+        case OS_WINDOWS: color = COLOR_OS_WINDOWS; break;
+        case OS_MAC:     color = COLOR_OS_MAC;     break;
+        case OS_ANDROID: color = COLOR_OS_ANDROID; break;
+        default:         color = COLOR_OFF;        break;
+    }
+    uint8_t brightness = rgb_matrix_get_val();
+    for (uint8_t i = 0; i < OS_INDICATOR_LED_COUNT; i++) {
+        uint8_t led = os_indicator_zone[i];
+        if (led >= led_min && led < led_max) {
+            apply_color(led, color, brightness);
+        }
+    }
+}
+
+// Step 6 (GAMING MODE only): reactive fade-out on keypress.
+static void render_event(uint8_t led_min, uint8_t led_max) {
+    const rgb_theme_t* theme      = get_active_theme();
+    uint8_t            brightness = rgb_matrix_get_val();
+
+    for (uint8_t i = 0; i < MAX_REACTIVE; i++) {
+        if (reactive_buffer[i].led == 0xFF) continue;
+
+        uint32_t elapsed = timer_elapsed32(reactive_buffer[i].timestamp);
+        if (elapsed >= REACTIVE_DECAY_MS) {
+            reactive_buffer[i].led = 0xFF;
+            continue;
+        }
+
+        uint8_t led = reactive_buffer[i].led;
+        if (led < led_min || led >= led_max) continue;
+        if (is_os_led(led)) continue;
+
+        uint8_t intensity = (uint8_t)(
+            ((uint32_t)(REACTIVE_DECAY_MS - elapsed) * brightness) / REACTIVE_DECAY_MS
+        );
+        apply_color(led, theme->reactive, intensity);
+    }
+}
 
 
 // ============================================================
-// MAIN RGB PIPELINE
+// CUSTOM RGB EFFECT STUBS  (canvas clear — indicators hook renders)
 // ============================================================
 
-bool rgb_matrix_indicators_user(void) {
+#ifdef RGB_MATRIX_CUSTOM_USER
 
-    uint8_t mode = rgb_matrix_get_mode();
+bool FIRMWARE_UI(effect_params_t* params) {
+    RGB_MATRIX_USE_LIMITS(led_min, led_max);
+    for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    return led_max < RGB_MATRIX_LED_COUNT;
+}
 
-    if (mode < RGB_MATRIX_CUSTOM) {
-        LOG(DEBUG_WARN, "[RGB] invalid mode=%d", mode);
+bool DEBUG_MODE(effect_params_t* params) {
+    RGB_MATRIX_USE_LIMITS(led_min, led_max);
+    for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    return led_max < RGB_MATRIX_LED_COUNT;
+}
+
+bool GAMING_MODE(effect_params_t* params) {
+    RGB_MATRIX_USE_LIMITS(led_min, led_max);
+    for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    return led_max < RGB_MATRIX_LED_COUNT;
+}
+
+#endif
+
+
+// ============================================================
+// INPUT HOOKS
+// ============================================================
+
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    // FN layer (1) + encoder → cycle OS
+    if (get_highest_layer(layer_state) == 1) {
+        if (clockwise) {
+            user_config.os_type = (user_config.os_type + 1) % OS_COUNT;
+        } else {
+            user_config.os_type = (user_config.os_type == 0)
+                ? OS_COUNT - 1
+                : user_config.os_type - 1;
+        }
+        LOG(DEBUG_INFO, "[ENC] OS=%d", user_config.os_type);
+        save_os_to_eeprom();
         return false;
     }
+    return true;
+}
 
-    current_custom_mode = mode - RGB_MATRIX_CUSTOM;
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    if (!record->event.pressed) return true;
 
+    switch (keycode) {
+        case OS_LINUX_SET:
+            user_config.os_type = OS_LINUX;
+            save_os_to_eeprom();
+            LOG(DEBUG_INFO, "[KEY] OS=LINUX");
+            return false;
+        case OS_WINDOWS_SET:
+            user_config.os_type = OS_WINDOWS;
+            save_os_to_eeprom();
+            LOG(DEBUG_INFO, "[KEY] OS=WINDOWS");
+            return false;
+        case OS_MAC_SET:
+            user_config.os_type = OS_MAC;
+            save_os_to_eeprom();
+            LOG(DEBUG_INFO, "[KEY] OS=MAC");
+            return false;
+        case OS_ANDROID_SET:
+            user_config.os_type = OS_ANDROID;
+            save_os_to_eeprom();
+            LOG(DEBUG_INFO, "[KEY] OS=ANDROID");
+            return false;
+
+        case THEME_NEXT:
+            user_config.theme = (user_config.theme + 1) % CUSTOM_MODE_COUNT;
+            save_theme_to_eeprom();
+            LOG(DEBUG_INFO, "[KEY] THEME_NEXT=%d", user_config.theme);
+            return false;
+        case THEME_PREV:
+            user_config.theme = (user_config.theme == 0)
+                ? CUSTOM_MODE_COUNT - 1
+                : user_config.theme - 1;
+            save_theme_to_eeprom();
+            LOG(DEBUG_INFO, "[KEY] THEME_PREV=%d", user_config.theme);
+            return false;
+    }
+
+    // Record keypress LED for reactive system
+    uint8_t row = record->event.key.row;
+    uint8_t col = record->event.key.col;
+    uint8_t led = g_led_config.matrix_co[row][col];
+    if (led != NO_LED) {
+        LOG(DEBUG_VERBOSE, "[REACT] LED=%d", led);
+        reactive_buffer[reactive_index].led       = led;
+        reactive_buffer[reactive_index].timestamp = timer_read32();
+        reactive_index = (reactive_index + 1) % MAX_REACTIVE;
+    }
+
+    return true;
+}
+
+
+// ============================================================
+// QMK HOOKS
+// ============================================================
+
+void keyboard_post_init_user(void) {
+    load_config_from_eeprom();
+
+    for (uint8_t i = 0; i < MAX_REACTIVE; i++) {
+        reactive_buffer[i].led = 0xFF;  // mark all slots inactive
+    }
+
+    update_keycode_cache();
+    build_modifier_list();
+
+    boot_indicator_active = true;
+    boot_timer            = timer_read32();
+
+    LOG(DEBUG_INFO, "[INIT] leds=%u mods=%u os=%d theme=%d",
+        (uint8_t)M57_LED_COUNT, modifier_led_count,
+        user_config.os_type, user_config.theme);
+}
+
+layer_state_t layer_state_set_user(layer_state_t state) {
+    update_keycode_cache();
+    build_modifier_list();
+    LOG(DEBUG_VERBOSE, "[LAYER] active=%u", get_highest_layer(state));
+    return state;
+}
+
+bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    // Boot flash: all white for BOOT_INDICATOR_DURATION ms
+    if (boot_indicator_active) {
+        if (timer_elapsed32(boot_timer) < BOOT_INDICATOR_DURATION) {
+            for (uint8_t i = led_min; i < led_max; i++) {
+                rgb_matrix_set_color(i, 255, 255, 255);
+            }
+            return false;
+        }
+        boot_indicator_active = false;
+    }
+
+    // Only run custom pipeline in custom RGB modes; let QMK handle the rest.
+    uint8_t mode = rgb_matrix_get_mode();
+    if (mode < RGB_MATRIX_CUSTOM) return false;
+
+    current_custom_mode = (custom_mode_t)(mode - RGB_MATRIX_CUSTOM);
+
+    // Periodic cache refresh (catches Vial remaps applied at runtime)
     if (timer_elapsed32(keycode_cache_timer) > KEYCODE_CACHE_REFRESH_INTERVAL) {
         update_keycode_cache();
         keycode_cache_timer = timer_read32();
     }
 
-    uint8_t brightness = rgb_matrix_get_val();
+    render_flag_base(led_min, led_max);
+    render_key_based(led_min, led_max);
+    render_key_groups(led_min, led_max);
+    render_modifier(led_min, led_max);
+    render_os(led_min, led_max);
 
-    render_flag_base(brightness);
-    render_key_based(brightness);
-    render_key_groups(brightness);
-    render_modifier(brightness);
-    render_os(brightness);
-
-    if (current_custom_mode == CUSTOM_MODE_GAMING)
-        render_event(brightness);
+    if (current_custom_mode == CUSTOM_MODE_GAMING) {
+        render_event(led_min, led_max);
+    }
 
     return false;
 }
