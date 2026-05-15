@@ -276,10 +276,20 @@ static uint8_t          reactive_index = 0;
 
 
 // ============================================================
-// BOOT INDICATOR
+// BOOT ANIMATION  (curtain sweep — 4 phases, ~1 second total)
 // ============================================================
+//
+//  Phase 0:  columns light up left → right   (curtain closes from left)
+//  Phase 1:  columns go dark  left → right   (curtain opens  to  right)
+//  Phase 2:  columns light up right → left   (curtain closes from right)
+//  Phase 3:  columns go dark  right → left   (curtain opens  to  left)
+//
+//  LED x-coordinates in g_led_config.point[] span 0–BOOT_LED_MAX_X.
+//  Each phase advances a sweep edge across that range in BOOT_PHASE_DURATION ms.
+//  Per-LED cost: one x-lookup + one compare = negligible.
 
-#define BOOT_INDICATOR_DURATION   600
+#define BOOT_PHASE_DURATION   250   // ms per phase  (4 × 250 = 1 000 ms total)
+#define BOOT_LED_MAX_X        210   // highest x value in g_led_config.point[]
 #define BOOT_INDICATOR_BRIGHTNESS 255
 
 static bool     boot_indicator_active = false;
@@ -693,15 +703,33 @@ layer_state_t layer_state_set_user(layer_state_t state) {
 }
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
-    // Boot flash: all white for BOOT_INDICATOR_DURATION ms
+    // Boot curtain animation: 4-phase column sweep (see BOOT ANIMATION section above)
     if (boot_indicator_active) {
-        if (timer_elapsed32(boot_timer) < BOOT_INDICATOR_DURATION) {
+        uint32_t elapsed = timer_elapsed32(boot_timer);
+
+        if (elapsed >= (uint32_t)BOOT_PHASE_DURATION * 4) {
+            boot_indicator_active = false;
+        } else {
+            uint8_t  phase   = (uint8_t)(elapsed / BOOT_PHASE_DURATION);
+            uint32_t phase_t = elapsed - (uint32_t)phase * BOOT_PHASE_DURATION;
+
+            // sweep: 0 → BOOT_LED_MAX_X over BOOT_PHASE_DURATION ms
+            uint16_t sweep = (uint16_t)(((uint32_t)phase_t * BOOT_LED_MAX_X) / BOOT_PHASE_DURATION);
+
             for (uint8_t i = led_min; i < led_max; i++) {
-                apply_color(i, COLOR_WHITE, BOOT_INDICATOR_BRIGHTNESS);
+                uint8_t lx = g_led_config.point[i].x;
+                bool lit;
+                switch (phase) {
+                    case 0: lit = (lx <= sweep);                    break; // L→R on
+                    case 1: lit = (lx >  sweep);                    break; // L→R off
+                    case 2: lit = (lx >= (BOOT_LED_MAX_X - sweep)); break; // R→L on
+                    case 3: lit = (lx <  (BOOT_LED_MAX_X - sweep)); break; // R→L off
+                    default: lit = false;                           break;
+                }
+                apply_color(i, lit ? COLOR_WHITE : COLOR_OFF, BOOT_INDICATOR_BRIGHTNESS);
             }
             return false;
         }
-        boot_indicator_active = false;
     }
 
     // Only run custom pipeline in custom RGB modes; let QMK handle the rest.
