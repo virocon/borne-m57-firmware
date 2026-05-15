@@ -98,6 +98,3 @@ WEAR_LEVELING_DRIVER = legacy
 # ✔ no LED conflicts
 # ✔ predictable behavior
 # ✔ full runtime control
-# MCU / BOARD
-# ============================================================
-

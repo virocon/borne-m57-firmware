@@ -2,6 +2,7 @@
 #include "theme.h"
 #include "eeconfig.h"
 #include "print.h"
+#include "host.h"
 
 
 // ============================================================
@@ -110,57 +111,68 @@ enum custom_keycodes {
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
-  [0] = LAYOUT(
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_ESC,  KC_1,    KC_2,    KC_3,   KC_4,   KC_5,                       KC_6,  KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
-   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
-                        KC_LALT, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
-                  //`-----------------------------------------'  `-----------------------------------'
+  // ── LAYER 0: BASE ──────────────────────────────────────────────────────────
+  [LAYER_BASE] = LAYOUT(
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_ESC,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,  KC_UP,     KC_LEFT, KC_Y,    KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
+   //|--------+--------+--------+--------+--------+-------+------| |---------+--------+-------+--------+-------+---------+---------|
+     KC_CAPS, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,  KC_DOWN,   KC_RGHT, KC_H,    KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
+   //|--------+--------+--------+--------+--------+-------+------| |---------+--------+-------+--------+-------+---------+---------|
+     KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,  KC_MUTE,   RGB_MOD, KC_N,    KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
+   //|--------+--------+--------+--------+--------+-------+---.   .---+-------+--------+-------+--------+-------+---------+---------|
+                                KC_LALT, MO(LAYER_FN),  KC_SPC,    KC_ENT,  MO(LAYER_NAV), KC_RCTL
+                         //`-------------------------------------------'  `-----------------------------------'
   ),
 
-  [1] = LAYOUT(
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_ESC,  KC_F1,   KC_F2,   KC_F3,  KC_F4,  KC_F5,                      KC_F6, KC_F7,  KC_F8,   KC_F9,  KC_F10,  KC_BSPC,
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
-   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
-                        KC_LCTL, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+  // ── LAYER 1: FN ────────────────────────────────────────────────────────────
+  // Left:  F-keys, PgUp/Dn, Home/End on row extras, Vol, Boot, theme cycle
+  // Right: F11/F12, PrintScrn, Scroll/NumLk, HJKL arrows (vim), OS SET keys
+  // TG(GAME) = FN + V
+  [LAYER_FN] = LAYOUT(
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     KC_GRV,  KC_F1,      KC_F2,      KC_F3,         KC_F4,   KC_F5,               KC_F6,   KC_F7,         KC_F8,         KC_F9,         KC_F10,        KC_DEL,
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     _______, _______,    _______,    _______,       KC_PGUP, KC_HOME, KC_PGUP, KC_PGDN, KC_F11,        KC_F12,        KC_PSCR,       KC_SCRL,       KC_NUM,  KC_RBRC,
+   //|--------+-----------+-----------+---------------+---------+--------+-----| |--------+--------------+--------------+--------------+--------------+--------+---------|
+     _______, THEME_PREV, _______,    THEME_NEXT,    KC_PGDN, KC_END,  KC_PGDN, KC_END,  KC_LEFT,       KC_DOWN,       KC_UP,         KC_RGHT,       KC_QUOT, _______,
+   //|--------+-----------+-----------+---------------+---------+--------+-----| |--------+--------------+--------------+--------------+--------------+--------+---------|
+     _______, _______,    _______,    _______,       TG(LAYER_GAME), QK_BOOT, KC_VOLD, KC_VOLU, OS_WINDOWS_SET, OS_MAC_SET, OS_ANDROID_SET, OS_LINUX_SET, KC_BSLS, _______,
+   //|--------+-----------+-----------+---------------+---------+--------+---.   .---+------+--------------+--------------+--------------+--------------+--------+---------|
+                                       _______, MO(LAYER_FN),  _______,         _______,  MO(LAYER_NAV),  _______
   ),
 
-  [2] = LAYOUT(
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_ESC,  KC_1,    KC_2,    KC_3,   KC_4,   KC_5,                       KC_6,  KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
-   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
-                        KC_LCTL, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+  // ── LAYER 2: NAV / NUMPAD ──────────────────────────────────────────────────
+  // Right side: numpad 7-9 / 4-6 / 1-3 / 0 layout.  Left: PgUp/Dn, Home/End.
+  // Right thumb Enter → numpad Enter.
+  [LAYER_NAV] = LAYOUT(
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     _______, _______, _______, _______, _______, _______,               _______, _______, _______, _______, _______, _______,
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     _______, _______, _______, _______, KC_PGUP, KC_HOME, KC_PGUP,  KC_HOME, KC_P7,   KC_P8,   KC_P9,   KC_PMNS, _______, _______,
+   //|--------+--------+--------+--------+--------+--------+------| |--------+--------+--------+--------+--------+--------+---------|
+     _______, _______, _______, _______, KC_PGDN, KC_END,  KC_PGDN,  KC_END,  KC_P4,   KC_P5,   KC_P6,   KC_PPLS, _______, _______,
+   //|--------+--------+--------+--------+--------+--------+------| |--------+--------+--------+--------+--------+--------+---------|
+     _______, _______, _______, _______, _______, _______, _______,  _______, KC_P1,   KC_P2,   KC_P3,   KC_P0,   KC_PDOT, _______,
+   //|--------+--------+--------+--------+--------+--------+---.   .---+------+--------+--------+--------+--------+--------+---------|
+                                _______, MO(LAYER_FN), _______,         KC_PENT, MO(LAYER_NAV), _______
   ),
 
-  [3] = LAYOUT(
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_ESC,  KC_1,    KC_2,    KC_3,   KC_4,   KC_5,                       KC_6,  KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
-   //,-------------------------------------------------------.     ,-------------------------------------------------------------.
-     KC_TAB,  KC_Q,    KC_W,    KC_E,   KC_R,   KC_T,  KC_UP,      KC_LEFT, KC_Y,  KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_CAPS, KC_A,    KC_S,    KC_D,   KC_F,   KC_G,  KC_DOWN,    KC_RIGHT,KC_H,  KC_J,   KC_K,    KC_L,   KC_SCLN, KC_ENTER,
-   //|-------+--------+--------+-------+--------+-------+----|  |---+--------+------+-------+--------+-------+---------+---------|
-     KC_LSFT, KC_Z,    KC_X,    KC_C,   KC_V,   KC_B,  KC_MUTE,    RGB_MOD, KC_N,  KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
-   //|-------+--------+-------+--------+---------+------+---.  .---+--------+------+-------+--------+-------+---------+---------|
-                        KC_LCTL, MO(1), KC_SPC,                     KC_ENT,  MO(2), KC_RCTL
+  // ── LAYER 3: GAME ──────────────────────────────────────────────────────────
+  // Activated via TG(LAYER_GAME) on FN+V.  RGB auto-switches to GAMING_MODE.
+  // Only change from BASE: CAPS → LCTL (standard gaming remapping).
+  [LAYER_GAME] = LAYOUT(
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     _______, _______, _______, _______, _______, _______,               _______, _______, _______, _______, _______, _______,
+   //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
+     _______, _______, _______, _______, _______, _______, _______,  _______, _______, _______, _______, _______, _______, _______,
+   //|--------+--------+--------+--------+--------+--------+------| |--------+--------+--------+--------+--------+--------+---------|
+     KC_LCTL, _______, _______, _______, _______, _______, _______,  _______, _______, _______, _______, _______, _______, _______,
+   //|--------+--------+--------+--------+--------+--------+------| |--------+--------+--------+--------+--------+--------+---------|
+     _______, _______, _______, _______, _______, _______, _______,  _______, _______, _______, _______, _______, _______, _______,
+   //|--------+--------+--------+--------+--------+--------+---.   .---+------+--------+--------+--------+--------+--------+---------|
+                                _______, MO(LAYER_FN), _______,         _______, MO(LAYER_NAV), _______
   )
 };
 
@@ -180,11 +192,32 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
 
 
 // ============================================================
+// COMBOS
+// ============================================================
+
+// J + K simultaneously → Esc  (vim-style insert-mode escape)
+const uint16_t PROGMEM combo_jk[] = {KC_J, KC_K, COMBO_END};
+
+combo_t key_combos[COMBO_COUNT] = {
+    COMBO(combo_jk, KC_ESC),
+};
+
+
+// ============================================================
 // LED OWNERSHIP  (OS indicator zone — never overwritten by other layers)
 // ============================================================
 
 static const uint8_t os_indicator_zone[] = {0, 1, 2, 3};
 #define OS_INDICATOR_LED_COUNT (sizeof(os_indicator_zone) / sizeof(os_indicator_zone[0]))
+
+// Layer indicator zone: first 4 LEDs of right top row (keys 6,7,8,9).
+// Mirrors the OS zone on the left — left corner = OS, right corner = layer.
+static const uint8_t layer_indicator_zone[] = {29, 30, 31, 32};
+#define LAYER_INDICATOR_LED_COUNT (sizeof(layer_indicator_zone) / sizeof(layer_indicator_zone[0]))
+
+// CAPS key is always at LED 13 (matrix row 2, col 0) regardless of active layer.
+// Hardcoded so the Caps Lock indicator works on every layer without cache lookups.
+#define CAPS_KEY_LED 13
 
 // Action keys rendered with theme->layer1 (edit this list to change which keys are highlighted)
 static const uint16_t action_keys[] = {KC_ENT, KC_BSPC, KC_DEL, KC_SPC};
@@ -193,6 +226,13 @@ static const uint16_t action_keys[] = {KC_ENT, KC_BSPC, KC_DEL, KC_SPC};
 static bool is_os_led(uint8_t led) {
     for (uint8_t i = 0; i < OS_INDICATOR_LED_COUNT; i++) {
         if (os_indicator_zone[i] == led) return true;
+    }
+    return false;
+}
+
+static bool is_layer_led(uint8_t led) {
+    for (uint8_t i = 0; i < LAYER_INDICATOR_LED_COUNT; i++) {
+        if (layer_indicator_zone[i] == led) return true;
     }
     return false;
 }
@@ -227,7 +267,7 @@ static uint8_t modifier_led_count = 0;
 #define REACTIVE_SLOT_UNUSED 0xFF
 
 typedef struct {
-    uint8_t  led;       // 0xFF = slot unused
+    uint8_t  led;       // REACTIVE_SLOT_UNUSED (0xFF) = slot inactive
     uint32_t timestamp;
 } reactive_event_t;
 
@@ -415,7 +455,47 @@ static void render_os(uint8_t led_min, uint8_t led_max, uint8_t brightness) {
     }
 }
 
-// Step 6 (GAMING MODE only): reactive fade-out on keypress.
+// Step 6: Layer indicator zone (right top row, LEDs 29-32).
+// Base layer: zone shows theme base color (render_flag_base already painted it — no override needed).
+// Any other layer: overrides with a unique layer color.
+static void render_layer(uint8_t led_min, uint8_t led_max, uint8_t brightness) {
+    uint8_t layer = get_highest_layer(layer_state);
+    rgb_t color;
+    switch (layer) {
+        case LAYER_FN:   color = COLOR_LAYER_FN;   break;
+        case LAYER_NAV:  color = COLOR_LAYER_NAV;  break;
+        case LAYER_GAME: color = COLOR_LAYER_GAME; break;
+        default: return; // LAYER_BASE: leave as theme base (no override)
+    }
+    for (uint8_t i = 0; i < LAYER_INDICATOR_LED_COUNT; i++) {
+        uint8_t led = layer_indicator_zone[i];
+        if (led >= led_min && led < led_max) {
+            apply_color(led, color, brightness);
+        }
+    }
+}
+
+// Step 7: Lock state indicators — painted last so they are always visible.
+// Caps Lock: LED 13 (hardcoded, always present on every layer).
+// Num / Scroll Lock: searched in the current keycode cache (only visible on layers
+// where the key is explicitly assigned, e.g. FN layer).
+static void render_lock_states(uint8_t led_min, uint8_t led_max, uint8_t brightness) {
+    led_t lock = host_keyboard_led_state();
+
+    if (lock.caps_lock && CAPS_KEY_LED >= led_min && CAPS_KEY_LED < led_max) {
+        apply_color(CAPS_KEY_LED, COLOR_LOCK_CAPS, brightness);
+    }
+
+    if (lock.num_lock || lock.scroll_lock) {
+        for (uint8_t i = led_min; i < led_max; i++) {
+            uint16_t kc = led_keycode_cache[i];
+            if (lock.num_lock    && kc == KC_NUM)  apply_color(i, COLOR_LOCK_NUM,  brightness);
+            if (lock.scroll_lock && kc == KC_SCRL) apply_color(i, COLOR_LOCK_SCRL, brightness);
+        }
+    }
+}
+
+// Step 8 (GAMING MODE only): reactive fade-out on keypress.
 static void render_event(uint8_t led_min, uint8_t led_max, const rgb_theme_t* theme, uint8_t brightness) {
     for (uint8_t i = 0; i < MAX_REACTIVE; i++) {
         if (reactive_buffer[i].led == REACTIVE_SLOT_UNUSED) continue;
@@ -428,7 +508,7 @@ static void render_event(uint8_t led_min, uint8_t led_max, const rgb_theme_t* th
 
         uint8_t led = reactive_buffer[i].led;
         if (led < led_min || led >= led_max) continue;
-        if (is_os_led(led)) continue;
+        if (is_os_led(led) || is_layer_led(led)) continue;
 
         uint8_t intensity = (uint8_t)(
             ((uint32_t)(REACTIVE_DECAY_MS - elapsed) * brightness) / REACTIVE_DECAY_MS
@@ -446,19 +526,19 @@ static void render_event(uint8_t led_min, uint8_t led_max, const rgb_theme_t* th
 
 bool FIRMWARE_UI(effect_params_t* params) {
     RGB_MATRIX_USE_LIMITS(led_min, led_max);
-    for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    for (uint8_t i = led_min; i < led_max; i++) apply_color(i, COLOR_OFF, 255);
     return led_max < RGB_MATRIX_LED_COUNT;
 }
 
 bool DEBUG_MODE(effect_params_t* params) {
     RGB_MATRIX_USE_LIMITS(led_min, led_max);
-    for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    for (uint8_t i = led_min; i < led_max; i++) apply_color(i, COLOR_OFF, 255);
     return led_max < RGB_MATRIX_LED_COUNT;
 }
 
 bool GAMING_MODE(effect_params_t* params) {
     RGB_MATRIX_USE_LIMITS(led_min, led_max);
-    for (uint8_t i = led_min; i < led_max; i++) rgb_matrix_set_color(i, 0, 0, 0);
+    for (uint8_t i = led_min; i < led_max; i++) apply_color(i, COLOR_OFF, 255);
     return led_max < RGB_MATRIX_LED_COUNT;
 }
 
@@ -470,16 +550,37 @@ bool GAMING_MODE(effect_params_t* params) {
 // ============================================================
 
 bool encoder_update_user(uint8_t index, bool clockwise) {
-    // FN layer (1) + encoder → cycle OS
-    if (get_highest_layer(layer_state) == LAYER_FN) {
-        if (clockwise) {
-            user_config.os_type = (user_config.os_type + 1) % OS_COUNT;
+    uint8_t layer = get_highest_layer(layer_state);
+
+    // In GAMING_MODE, do not intercept FN+encoder — let encoder_map handle
+    // RGB controls (HUD/HUI etc.) so gaming is not accidentally disrupted.
+    uint8_t rgb_mode = rgb_matrix_get_mode();
+    bool in_gaming_mode = (rgb_mode >= RGB_MATRIX_CUSTOM) &&
+                          ((custom_mode_t)(rgb_mode - RGB_MATRIX_CUSTOM) == CUSTOM_MODE_GAMING);
+
+    if (layer == LAYER_FN && !in_gaming_mode) {
+        if (index == 0) {
+            // Left encoder on FN: cycle theme
+            if (clockwise) {
+                user_config.theme = (user_config.theme + 1) % CUSTOM_MODE_COUNT;
+            } else {
+                user_config.theme = (user_config.theme == 0)
+                    ? CUSTOM_MODE_COUNT - 1
+                    : user_config.theme - 1;
+            }
+            LOG(DEBUG_INFO, "[ENC] THEME=%d", user_config.theme);
         } else {
-            user_config.os_type = (user_config.os_type == 0)
-                ? OS_COUNT - 1
-                : user_config.os_type - 1;
+            // Right encoder on FN: cycle OS
+            // (right hand operates right encoder; left hand holds FN — ergonomic two-hand operation)
+            if (clockwise) {
+                user_config.os_type = (user_config.os_type + 1) % OS_COUNT;
+            } else {
+                user_config.os_type = (user_config.os_type == 0)
+                    ? OS_COUNT - 1
+                    : user_config.os_type - 1;
+            }
+            LOG(DEBUG_INFO, "[ENC] OS=%d", user_config.os_type);
         }
-        LOG(DEBUG_INFO, "[ENC] OS=%d", user_config.os_type);
         save_config();
         return false;
     }
@@ -525,15 +626,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             return false;
     }
 
-    // Record keypress LED for reactive system
-    uint8_t row = record->event.key.row;
-    uint8_t col = record->event.key.col;
-    uint8_t led = g_led_config.matrix_co[row][col];
-    if (led != NO_LED) {
-        LOG(DEBUG_VERBOSE, "[REACT] LED=%d", led);
-        reactive_buffer[reactive_index].led       = led;
-        reactive_buffer[reactive_index].timestamp = timer_read32();
-        reactive_index = (reactive_index + 1) % MAX_REACTIVE;
+    // Record keypress LED for reactive system — GAMING MODE only.
+    // Avoids filling the reactive buffer with events that are never rendered.
+    uint8_t cur_mode = rgb_matrix_get_mode();
+    bool is_gaming_active = (cur_mode >= RGB_MATRIX_CUSTOM) &&
+                            ((custom_mode_t)(cur_mode - RGB_MATRIX_CUSTOM) == CUSTOM_MODE_GAMING);
+    if (is_gaming_active) {
+        uint8_t row = record->event.key.row;
+        uint8_t col = record->event.key.col;
+        uint8_t led = g_led_config.matrix_co[row][col];
+        if (led != NO_LED) {
+            LOG(DEBUG_VERBOSE, "[REACT] LED=%d", led);
+            reactive_buffer[reactive_index].led       = led;
+            reactive_buffer[reactive_index].timestamp = timer_read32();
+            reactive_index = (reactive_index + 1) % MAX_REACTIVE;
+        }
     }
 
     return true;
@@ -565,6 +672,22 @@ void keyboard_post_init_user(void) {
 layer_state_t layer_state_set_user(layer_state_t state) {
     update_keycode_cache();
     build_modifier_list();
+
+    // Auto-switch RGB to GAMING_MODE when GAME layer is toggled on, restore on toggle off.
+    static bool    was_gaming       = false;
+    static uint8_t pre_game_rgb_mode = 0;
+
+    bool is_gaming = (state & ((layer_state_t)1 << LAYER_GAME)) != 0;
+    if (is_gaming && !was_gaming) {
+        pre_game_rgb_mode = rgb_matrix_get_mode();
+        rgb_matrix_mode(RGB_MATRIX_CUSTOM + CUSTOM_MODE_GAMING);
+        LOG(DEBUG_INFO, "[LAYER] GAME on, rgb saved=%d", pre_game_rgb_mode);
+    } else if (!is_gaming && was_gaming) {
+        rgb_matrix_mode(pre_game_rgb_mode);
+        LOG(DEBUG_INFO, "[LAYER] GAME off, rgb restored=%d", pre_game_rgb_mode);
+    }
+    was_gaming = is_gaming;
+
     LOG(DEBUG_VERBOSE, "[LAYER] active=%u", get_highest_layer(state));
     return state;
 }
@@ -597,11 +720,13 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     const rgb_theme_t* theme     = get_active_theme();
     uint8_t            brightness = rgb_matrix_get_val();
 
-    render_flag_base (led_min, led_max, theme, brightness);
-    render_key_based (led_min, led_max, theme, brightness);
-    render_key_groups(led_min, led_max, theme, brightness);
-    render_modifier  (led_min, led_max,        brightness);
-    render_os        (led_min, led_max,        brightness);
+    render_flag_base  (led_min, led_max, theme, brightness);
+    render_key_based  (led_min, led_max, theme, brightness);
+    render_key_groups (led_min, led_max, theme, brightness);
+    render_modifier   (led_min, led_max,        brightness);
+    render_os         (led_min, led_max,        brightness);
+    render_layer      (led_min, led_max,        brightness);  // layer indicator zone (right top row)
+    render_lock_states(led_min, led_max,        brightness);  // Caps/Num/Scroll Lock LEDs
 
     if (current_custom_mode == CUSTOM_MODE_GAMING) {
         render_event(led_min, led_max, theme, brightness);

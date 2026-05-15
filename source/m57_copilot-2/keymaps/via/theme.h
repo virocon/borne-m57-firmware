@@ -64,6 +64,24 @@ typedef struct {
 
 
 // ============================================================
+// --- LAYER INDICATOR COLORS ---
+// ============================================================
+
+#define COLOR_LAYER_FN    ((rgb_t){255, 100,   0}) // Orange:  FN layer active
+#define COLOR_LAYER_NAV   ((rgb_t){150,   0, 255}) // Purple:  NAV / numpad layer active
+#define COLOR_LAYER_GAME  ((rgb_t){  0, 255,   0}) // Green:   GAME layer active (matches gaming theme)
+
+
+// ============================================================
+// --- LOCK STATE COLORS ---
+// ============================================================
+
+#define COLOR_LOCK_CAPS   ((rgb_t){255,   0,   0}) // Red:     Caps Lock active
+#define COLOR_LOCK_NUM    ((rgb_t){  0, 200, 100}) // Teal:    Num Lock active
+#define COLOR_LOCK_SCRL   ((rgb_t){200, 100,   0}) // Amber:   Scroll Lock active
+
+
+// ============================================================
 // --- BASE / UTILITY COLORS ---
 // ============================================================
 

@@ -6,6 +6,7 @@ VIAL_ENABLE = yes
 VIA_ENABLE  = yes
 
 ENCODER_MAP_ENABLE = yes
+COMBO_ENABLE       = yes
 
 VIAL_INSECURE = yes
 
