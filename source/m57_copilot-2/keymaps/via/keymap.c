@@ -118,7 +118,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
    //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
      KC_TAB,  KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,  KC_UP,     KC_LEFT, KC_Y,    KC_U,   KC_I,    KC_O,   KC_P,    KC_LBRC,
    //|--------+--------+--------+--------+--------+-------+------| |---------+--------+-------+--------+-------+---------+---------|
-     KC_CAPS, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,  KC_DOWN,   KC_RGHT, KC_H,    KC_J,   KC_K,    KC_L,   KC_SCLN, KC_NO,
+     KC_CAPS, KC_A,    KC_S,    KC_D,    KC_F,    KC_G,  KC_DOWN,   KC_RGHT, KC_H,    KC_J,   KC_K,    KC_L,   KC_SCLN, KC_QUOT,
    //|--------+--------+--------+--------+--------+-------+------| |---------+--------+-------+--------+-------+---------+---------|
      KC_LSFT, KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,  KC_MUTE,   RGB_MOD, KC_N,    KC_M,   KC_COMM, KC_DOT, KC_SLSH, KC_DEL,
    //|--------+--------+--------+--------+--------+-------+---.   .---+-------+--------+-------+--------+-------+---------+---------|
@@ -214,6 +214,27 @@ combo_t key_combos[COMBO_COUNT] = {
 
 // ============================================================
 
+
+// ============================================================
+// KEY OVERRIDES — AltGr (RALT) + key → Swedish character
+// ============================================================
+// Intercepts before the OS, so works on any OS layout (US standard etc.).
+// Uses QMK Unicode internally — method auto-selected per OS at boot.
+//
+//   RALT + [  (R66, after P)  → å  U+00E5
+//   RALT + ;  (R75, after L)  → ö  U+00F6
+//   RALT + '  (R76, after ;)  → ä  U+00E4
+
+static const key_override_t ao_override = ko_make_basic(MOD_BIT(KC_RALT), KC_LBRC, UC(0x00E5));
+static const key_override_t oo_override = ko_make_basic(MOD_BIT(KC_RALT), KC_SCLN, UC(0x00F6));
+static const key_override_t ae_override = ko_make_basic(MOD_BIT(KC_RALT), KC_QUOT, UC(0x00E4));
+
+const key_override_t *key_overrides[] = {
+    &ao_override,   // RALT+[ → å
+    &oo_override,   // RALT+; → ö
+    &ae_override,   // RALT+' → ä
+    NULL
+};
 
 
 static const uint8_t os_indicator_zone[] = {0, 1, 2, 3};
@@ -613,21 +634,25 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         case OS_LINUX_SET:
             user_config.os_type = OS_LINUX;
             save_config();
+            unicode_input_mode_set(UNICODE_MODE_LINUX);
             LOG(DEBUG_INFO, "[KEY] OS=LINUX");
             return false;
         case OS_WINDOWS_SET:
             user_config.os_type = OS_WINDOWS;
             save_config();
+            unicode_input_mode_set(UNICODE_MODE_WIN);
             LOG(DEBUG_INFO, "[KEY] OS=WINDOWS");
             return false;
         case OS_MAC_SET:
             user_config.os_type = OS_MAC;
             save_config();
+            unicode_input_mode_set(UNICODE_MODE_MACOS);
             LOG(DEBUG_INFO, "[KEY] OS=MAC");
             return false;
         case OS_ANDROID_SET:
             user_config.os_type = OS_ANDROID;
             save_config();
+            unicode_input_mode_set(UNICODE_MODE_LINUX);
             LOG(DEBUG_INFO, "[KEY] OS=ANDROID");
             return false;
 
@@ -672,6 +697,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 void keyboard_post_init_user(void) {
     load_config_from_eeprom();
+
+    // Match unicode input method to stored OS — no manual cycling needed.
+    switch (user_config.os_type) {
+        case OS_MAC:     unicode_input_mode_set(UNICODE_MODE_MACOS); break;
+        case OS_LINUX:
+        case OS_ANDROID: unicode_input_mode_set(UNICODE_MODE_LINUX); break;
+        default:         unicode_input_mode_set(UNICODE_MODE_WIN);   break;
+    }
 
     for (uint8_t i = 0; i < MAX_REACTIVE; i++) {
         reactive_buffer[i].led = REACTIVE_SLOT_UNUSED;

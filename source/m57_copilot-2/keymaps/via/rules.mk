@@ -25,6 +25,14 @@ TAP_DANCE_ENABLE = yes
 # VIAL_KEY_OVERRIDE_ENTRIES in config.h controls slot count.
 KEY_OVERRIDE_ENABLE = yes
 
+# Unicode: send å ö ä directly from firmware using OS built-in methods.
+# No extra software needed on any platform:
+#   Windows → Alt+numpad (built-in, UNICODE_MODE_WIN)
+#   Mac     → Unicode Hex Input (enable once in System Prefs, no admin)
+#   Linux   → Ctrl+Shift+U (built-in)
+# Active method switches automatically when OS key is pressed (see keymap.c).
+UNICODE_ENABLE = yes
+
 # Auto Shift: hold any key slightly longer than AUTO_SHIFT_TIMEOUT to get its
 # shifted version — no Shift key needed.  OFF by default after flash; enable and
 # tune the timeout live in Vial's Auto Shift panel (or assign AS_ON keycode).

@@ -25,6 +25,17 @@
 
 
 // ============================================================
+// UNICODE INPUT METHODS
+// ============================================================
+// Active method is set automatically at boot from stored OS (see keymap.c).
+// No extra software needed on any platform:
+//   UNICODE_MODE_WIN    → Alt+numpad codes  (Windows built-in)
+//   UNICODE_MODE_MACOS  → Unicode Hex Input (Mac built-in, enable once in System Prefs)
+//   UNICODE_MODE_LINUX  → Ctrl+Shift+U      (Linux built-in)
+#define UNICODE_SELECTED_MODES UNICODE_MODE_WIN, UNICODE_MODE_MACOS, UNICODE_MODE_LINUX
+
+
+// ============================================================
 // TAP / HOLD TIMING
 // ============================================================
 
