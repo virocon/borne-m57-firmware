@@ -24,27 +24,11 @@ This document is an instruction set for reimplementing all features and settings
 
 All implementation lives in `keymaps/via/`:
 - `keymap.c` — all logic
-- `theme.h` — all color constants and theme profiles (**must be created from scratch — not in vendor tree**)
+- `theme.h` — all color constants and theme profiles
 - `rules.mk` — feature enables
 - `config.h` — per-keymap defines
-- `rgb_matrix_user.inc` — custom RGB effect declarations (**must be created from scratch**)
 
 Do not modify `m57.c` (LED config) or `m57.h` (LAYOUT macro) unless the hardware changes.
-
-### rgb_matrix_user.inc (create this file)
-
-```c
-// Custom RGB matrix effect definitions for M57 firmware.
-// Included by QMK's RGB matrix system when RGB_MATRIX_CUSTOM_USER = yes.
-// Each name here gets a corresponding implementation stub in keymap.c.
-// Actual per-LED rendering is handled by rgb_matrix_indicators_advanced_user();
-// these stubs only clear the canvas so the indicator hook paints cleanly.
-RGB_MATRIX_EFFECT(FIRMWARE_UI)
-RGB_MATRIX_EFFECT(DEBUG_MODE)
-RGB_MATRIX_EFFECT(GAMING_MODE)
-```
-
-This file must sit at `keymaps/via/rgb_matrix_user.inc`. QMK picks it up automatically when `RGB_MATRIX_CUSTOM_USER = yes` is set (rules.mk does NOT need an explicit include). The three names (`FIRMWARE_UI`, `DEBUG_MODE`, `GAMING_MODE`) must exactly match the function names in `keymap.c`.
 
 ---
 
@@ -64,14 +48,11 @@ MOUSEKEY_ENABLE        = yes
 REPEAT_KEY_ENABLE      = yes
 DYNAMIC_TAPPING_TERM_ENABLE = yes
 VIALRGB_ENABLE         = yes
-RGB_MATRIX_CUSTOM_USER = yes
 ```
-
-`RGB_MATRIX_CUSTOM_USER = yes` tells QMK to include `rgb_matrix_user.inc` from the keymap directory and compile the three effect stubs (`FIRMWARE_UI`, `DEBUG_MODE`, `GAMING_MODE`) defined in `keymap.c`. Without this, the `#ifdef RGB_MATRIX_CUSTOM_USER` guard in `keymap.c` silently drops the stubs and the custom modes won't appear in Vial.
 
 Add informative comments explaining the purpose of each feature and how it relates to Vial editors. `CONSOLE_ENABLE` is commented out (production build).
 
-Custom RGB modes are declared in `rgb_matrix_user.inc` (one `RGB_MATRIX_EFFECT(NAME)` per mode). Stub implementations live in `keymap.c` wrapped in `#ifdef RGB_MATRIX_CUSTOM_USER`.
+Custom RGB modes are defined via `rgb_matrix_effects.inc` (one line per mode: `RGB_MATRIX_EFFECT(FIRMWARE_UI)` etc.). Stubs for each mode live in `keymap.c`.
 
 ---
 
@@ -101,240 +82,85 @@ Custom RGB modes are declared in `rgb_matrix_user.inc` (one `RGB_MATRIX_EFFECT(N
 
 ---
 
-## theme.h — complete file
+## theme.h — color system
 
-`theme.h` does not exist in the vendor/reference tree. You must create it from scratch at `keymaps/via/theme.h`. It is the **only** source of all RGB color values in the entire firmware — `keymap.c` must never contain raw `{r, g, b}` literals.
+All colors are `rgb_t` structs `{r, g, b}`. No raw RGB values anywhere in `keymap.c` — everything goes through named `COLOR_*` constants.
 
-The file provides three things:
-1. `rgb_t` struct type
-2. All `COLOR_*` named constants
-3. `rgb_theme_t` struct + three theme instances (`theme_ui`, `theme_debug`, `theme_gaming`)
-4. `apply_color()` inline utility function
-
-### Complete theme.h (copy verbatim)
+### Color constants to define
 
 ```c
-#pragma once
+typedef struct { uint8_t r; uint8_t g; uint8_t b; } rgb_t;
 
-#include "quantum.h"
+// OS indicators
+#define COLOR_OS_LINUX    ((rgb_t){  0,  80, 200})
+#define COLOR_OS_WINDOWS  ((rgb_t){  0, 120, 255})
+#define COLOR_OS_MAC      ((rgb_t){180, 180, 180})
+#define COLOR_OS_ANDROID  ((rgb_t){  0, 150,   0})
 
-/*
-============================================================
-CENTRAL RGB COLOR SYSTEM (M57 FIRMWARE)
-============================================================
+// Modifiers
+#define COLOR_MOD_SHIFT       ((rgb_t){255,   0,   0})
+#define COLOR_MOD_CTRL        ((rgb_t){255, 120,   0})
+#define COLOR_MOD_ALT         ((rgb_t){255, 200,   0})
+#define COLOR_MOD_GUI         ((rgb_t){200,   0, 200})
+#define COLOR_MOD_SHIFT_CTRL  ((rgb_t){255, 255,   0})
+#define COLOR_MOD_ALT_GUI     ((rgb_t){255,   0, 255})
 
-Single source of truth for ALL color definitions.
+// Layer indicators
+#define COLOR_LAYER_FN    ((rgb_t){255, 100,   0})
+#define COLOR_LAYER_NAV   ((rgb_t){150,   0, 255})
+#define COLOR_LAYER_GAME  ((rgb_t){  0, 255,   0})
 
-Provides:
-✔ reusable color constants (COLOR_*)
-✔ theme profiles (rgb_theme_t)
-✔ utility function (apply_color)
+// Lock states
+#define COLOR_LOCK_CAPS   ((rgb_t){255,   0,   0})
+#define COLOR_LOCK_NUM    ((rgb_t){  0, 200, 100})
+#define COLOR_LOCK_SCRL   ((rgb_t){200, 100,   0})
 
-NOTE:
-Some color groups are not currently used in keymap.c but are
-intentionally retained for future features:
-- modifier highlighting
-- OS indicators
-- debug overlays
-*/
+// Utility
+#define COLOR_WHITE       ((rgb_t){255, 255, 255})
+#define COLOR_OFF         ((rgb_t){  0,   0,   0})
 
+// Theme color slots (all theme colors reference these)
+#define COLOR_BASE_UI        ((rgb_t){  0,  40, 120})
+#define COLOR_LAYER1_UI      ((rgb_t){  0,   0, 255})
+#define COLOR_LAYER2_UI      ((rgb_t){255,   0, 255})
+#define COLOR_REACTIVE_UI    ((rgb_t){255, 200,   0})
 
-typedef struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-} rgb_t;
+#define COLOR_BASE_DEBUG     ((rgb_t){120,   0,   0})
+#define COLOR_LAYER1_DEBUG   ((rgb_t){255,   0,   0})
+#define COLOR_LAYER2_DEBUG   ((rgb_t){255, 100, 100})
+#define COLOR_REACTIVE_DEBUG ((rgb_t){255, 255, 255})
 
-
-// ============================================================
-// --- OS INDICATOR COLORS ---
-// ============================================================
-// Used in: render_os() → painted on os_indicator_zone[] LEDs {0,1,2,3}
-
-#define COLOR_OS_LINUX    ((rgb_t){  0,  80, 200}) // Cyan-blue: Linux branding, cool system identity
-#define COLOR_OS_WINDOWS  ((rgb_t){  0, 120, 255}) // Bright blue: Windows-style accent color
-#define COLOR_OS_MAC      ((rgb_t){180, 180, 180}) // Neutral gray: macOS metallic style
-#define COLOR_OS_ANDROID  ((rgb_t){  0, 150,   0}) // Green: Android ecosystem color
-
-
-// ============================================================
-// --- MODIFIER COLORS ---
-// ============================================================
-// Used in: render_modifier()
-//   Single modifier held:  COLOR_MOD_*  at full brightness
-//   Modifier idle:         COLOR_MOD_*  at brightness / MODIFIER_DIM_DIVISOR (=4)
-//   Two modifiers held simultaneously → combined color:
-//     Shift+Ctrl → COLOR_MOD_SHIFT_CTRL  (shown on BOTH Shift and Ctrl LEDs)
-//     Alt+GUI    → COLOR_MOD_ALT_GUI     (shown on BOTH Alt and GUI LEDs)
-
-#define COLOR_MOD_SHIFT       ((rgb_t){255,   0,   0}) // Red: high urgency / active typing modifier
-#define COLOR_MOD_CTRL        ((rgb_t){255, 120,   0}) // Orange: control/combo operations
-#define COLOR_MOD_ALT         ((rgb_t){255, 200,   0}) // Yellow: alternate function indicator
-#define COLOR_MOD_GUI         ((rgb_t){200,   0, 200}) // Magenta: system-level command key
-
-#define COLOR_MOD_SHIFT_CTRL  ((rgb_t){255, 255,   0}) // Yellow: combined modifier emphasis
-#define COLOR_MOD_ALT_GUI     ((rgb_t){255,   0, 255}) // Bright magenta: dual modifier highlight
-
-
-// ============================================================
-// --- PERSIST STATE COLORS ---
-// ============================================================
-// NOT currently used in keymap.c. Retained for future persistent-layer indicator.
-
-#define COLOR_PERSIST_ON   ((rgb_t){  0, 200,   0}) // Green: persistent layer or mode enabled
-#define COLOR_PERSIST_OFF  ((rgb_t){200,   0,   0}) // Red: persistent layer disabled
-
-
-// ============================================================
-// --- LAYER INDICATOR COLORS ---
-// ============================================================
-// Used in: render_layer() → painted on layer_indicator_zone[] LEDs {29,30,31,32}
-// LAYER_BASE: no override (theme base color left from render_flag_base)
-
-#define COLOR_LAYER_FN    ((rgb_t){255, 100,   0}) // Orange:  FN layer active
-#define COLOR_LAYER_NAV   ((rgb_t){150,   0, 255}) // Purple:  NAV / mouse layer active
-#define COLOR_LAYER_GAME  ((rgb_t){  0, 255,   0}) // Green:   GAME layer active (matches gaming theme)
-
-
-// ============================================================
-// --- LOCK STATE COLORS ---
-// ============================================================
-// Used in: render_lock_states()
-//   Caps Lock:   always LED 13 (hardcoded = CAPS_KEY_LED)
-//   Num Lock:    searched in keycode cache for KC_NUM
-//   Scroll Lock: searched in keycode cache for KC_SCRL
-
-#define COLOR_LOCK_CAPS   ((rgb_t){255,   0,   0}) // Red:     Caps Lock active
-#define COLOR_LOCK_NUM    ((rgb_t){  0, 200, 100}) // Teal:    Num Lock active
-#define COLOR_LOCK_SCRL   ((rgb_t){200, 100,   0}) // Amber:   Scroll Lock active
-
-
-// ============================================================
-// --- BASE / UTILITY COLORS ---
-// ============================================================
-// COLOR_WHITE: used in boot animation for the "lit" phase of the column sweep
-// COLOR_OFF:   used in boot animation "dark" phase AND in RGB effect stubs to clear canvas
-
-#define COLOR_WHITE       ((rgb_t){255, 255, 255}) // White: neutral highlight / debug / flash
-#define COLOR_OFF         ((rgb_t){  0,   0,   0}) // Off: LED disabled
-
-
-// ============================================================
-// --- THEME COLOR DEFINITIONS ---
-// ============================================================
-// All theme colors must reference COLOR_* macros. No raw RGB values.
-// Each theme has 4 slots that map to specific render pipeline steps:
-//
-//   .base     → render_flag_base()   all non-OS LEDs, background
-//   .layer1   → render_key_based()   action keys: Enter, Bspc, Del, Space
-//   .layer2   → render_key_groups()  letters A-Z, digits 1-0, F1-F12
-//   .reactive → render_event()       GAMING_MODE only: keypress fade-out color
-
-// --- UI THEME ---
-#define COLOR_BASE_UI        ((rgb_t){  0,  40, 120}) // Blue base: calm, structured interface
-#define COLOR_LAYER1_UI      ((rgb_t){  0,   0, 255}) // Pure blue: primary layer highlight
-#define COLOR_LAYER2_UI      ((rgb_t){255,   0, 255}) // Magenta: secondary layer or alternate function
-#define COLOR_REACTIVE_UI    ((rgb_t){255, 200,   0}) // Warm yellow: subtle interaction feedback
-
-// --- DEBUG THEME ---
-#define COLOR_BASE_DEBUG     ((rgb_t){120,   0,   0}) // Dark red: diagnostic mode base
-#define COLOR_LAYER1_DEBUG   ((rgb_t){255,   0,   0}) // Bright red: primary debug signals
-#define COLOR_LAYER2_DEBUG   ((rgb_t){255, 100, 100}) // Soft red: secondary debug state
-#define COLOR_REACTIVE_DEBUG ((rgb_t){255, 255, 255}) // White: maximum visibility for events
-
-// --- GAMING THEME ---
-#define COLOR_BASE_GAMING     ((rgb_t){  0, 120,   0}) // Green base: game-ready visual state
-#define COLOR_LAYER1_GAMING   ((rgb_t){  0, 255,   0}) // Bright green: active gameplay layer
-#define COLOR_LAYER2_GAMING   ((rgb_t){255, 255,   0}) // Yellow: secondary function emphasis
-#define COLOR_REACTIVE_GAMING ((rgb_t){255, 100,   0}) // Orange: dynamic input feedback
-
-
-// ============================================================
-// THEME SYSTEM (PROFILE-BASED RGB)
-// ============================================================
-
-typedef struct {
-    rgb_t base;      // render_flag_base → all non-OS background LEDs
-    rgb_t layer1;    // render_key_based → action keys (Enter, Bspc, Del, Space)
-    rgb_t layer2;    // render_key_groups → letters, digits, F-keys
-    rgb_t reactive;  // render_event → GAMING_MODE keypress fade-out only
-} rgb_theme_t;
-
-
-// ============================================================
-// --- THEME INSTANCES ---
-// ============================================================
-// Indexed by custom_mode_t: CUSTOM_MODE_UI=0, CUSTOM_MODE_DEBUG=1, CUSTOM_MODE_GAMING=2
-// In keymap.c, themes[] array maps each mode index to its rgb_theme_t pointer.
-// User cycles themes via THEME_NEXT/THEME_PREV keys or FN+encoder (left).
-
-static const rgb_theme_t theme_ui = {
-    .base     = COLOR_BASE_UI,
-    .layer1   = COLOR_LAYER1_UI,
-    .layer2   = COLOR_LAYER2_UI,
-    .reactive = COLOR_REACTIVE_UI,
-};
-
-static const rgb_theme_t theme_debug = {
-    .base     = COLOR_BASE_DEBUG,
-    .layer1   = COLOR_LAYER1_DEBUG,
-    .layer2   = COLOR_LAYER2_DEBUG,
-    .reactive = COLOR_REACTIVE_DEBUG,
-};
-
-static const rgb_theme_t theme_gaming = {
-    .base     = COLOR_BASE_GAMING,
-    .layer1   = COLOR_LAYER1_GAMING,
-    .layer2   = COLOR_LAYER2_GAMING,
-    .reactive = COLOR_REACTIVE_GAMING,
-};
-
-
-// ============================================================
-// APPLY COLOR UTILITY
-// ============================================================
-// Single function used by ALL render steps. Never call rgb_matrix_set_color()
-// directly in keymap.c — always go through apply_color().
-//
-// Formula: (channel * brightness) >> 8
-//   Equivalent to channel * brightness / 256 (not /255 — intentional).
-//   At brightness=255: output = 254 max (0.4% below true max — imperceptible).
-//   Cheaper than division on MCU: single right-shift vs. divide instruction.
-
-static inline void apply_color(uint8_t led_index, rgb_t color, uint8_t brightness) {
-    rgb_matrix_set_color(
-        led_index,
-        (uint8_t)(((uint16_t)color.r * brightness) >> 8),
-        (uint8_t)(((uint16_t)color.g * brightness) >> 8),
-        (uint8_t)(((uint16_t)color.b * brightness) >> 8)
-    );
-}
+#define COLOR_BASE_GAMING     ((rgb_t){  0, 120,   0})
+#define COLOR_LAYER1_GAMING   ((rgb_t){  0, 255,   0})
+#define COLOR_LAYER2_GAMING   ((rgb_t){255, 255,   0})
+#define COLOR_REACTIVE_GAMING ((rgb_t){255, 100,   0})
 ```
 
-### What keymap.c includes from theme.h
+### Theme struct and instances
 
-| Used in keymap.c | Symbol(s) from theme.h |
-|---|---|
-| `render_flag_base()` | `theme->base`, `apply_color` |
-| `render_key_based()` | `theme->layer1`, `apply_color` |
-| `render_key_groups()` | `theme->layer2`, `apply_color` |
-| `render_modifier()` | `COLOR_MOD_SHIFT`, `COLOR_MOD_CTRL`, `COLOR_MOD_ALT`, `COLOR_MOD_GUI`, `COLOR_MOD_SHIFT_CTRL`, `COLOR_MOD_ALT_GUI`, `rgb_t`, `apply_color` |
-| `render_os()` | `COLOR_OS_LINUX`, `COLOR_OS_WINDOWS`, `COLOR_OS_MAC`, `COLOR_OS_ANDROID`, `COLOR_OFF`, `rgb_t`, `apply_color` |
-| `render_layer()` | `COLOR_LAYER_FN`, `COLOR_LAYER_NAV`, `COLOR_LAYER_GAME`, `rgb_t`, `apply_color` |
-| `render_lock_states()` | `COLOR_LOCK_CAPS`, `COLOR_LOCK_NUM`, `COLOR_LOCK_SCRL`, `apply_color` |
-| `render_event()` | `theme->reactive`, `apply_color` |
-| Boot animation | `COLOR_WHITE`, `COLOR_OFF`, `apply_color` |
-| RGB effect stubs | `COLOR_OFF`, `apply_color` |
-| Theme lookup | `rgb_theme_t`, `theme_ui`, `theme_debug`, `theme_gaming` |
+```c
+typedef struct {
+    rgb_t base;
+    rgb_t layer1;
+    rgb_t layer2;
+    rgb_t reactive;
+} rgb_theme_t;
 
-### Symbols defined but NOT used in keymap.c (reserved)
+static const rgb_theme_t theme_ui     = { COLOR_BASE_UI,     COLOR_LAYER1_UI,     COLOR_LAYER2_UI,     COLOR_REACTIVE_UI };
+static const rgb_theme_t theme_debug  = { COLOR_BASE_DEBUG,  COLOR_LAYER1_DEBUG,  COLOR_LAYER2_DEBUG,  COLOR_REACTIVE_DEBUG };
+static const rgb_theme_t theme_gaming = { COLOR_BASE_GAMING, COLOR_LAYER1_GAMING, COLOR_LAYER2_GAMING, COLOR_REACTIVE_GAMING };
+```
 
-| Symbol | Reason kept |
-|---|---|
-| `COLOR_PERSIST_ON` | Future persistent-layer indicator |
-| `COLOR_PERSIST_OFF` | Future persistent-layer indicator |
+### apply_color utility
 
-Do NOT remove them — they are intentional forward declarations.
+```c
+static inline void apply_color(uint8_t led, rgb_t color, uint8_t brightness) {
+    rgb_matrix_set_color(led,
+        (uint8_t)(((uint16_t)color.r * brightness) >> 8),
+        (uint8_t)(((uint16_t)color.g * brightness) >> 8),
+        (uint8_t)(((uint16_t)color.b * brightness) >> 8));
+}
+```
 
 ---
 
