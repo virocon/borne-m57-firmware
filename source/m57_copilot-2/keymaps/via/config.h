@@ -8,8 +8,9 @@
 // These control how many entries each Vial live-editor can hold.
 // Increase if you need more slots; each slot costs a small amount of EEPROM.
 
-// Number of hardcoded combos in keymap.c (compile-time, not Vial-editable)
-#define COMBO_COUNT 1
+// Number of hardcoded combos in keymap.c (compile-time, not Vial-editable).
+// Set to 0 — use Vial's Combo editor for runtime combos instead.
+#define COMBO_COUNT 0
 
 // Tap-Dance slots available in Vial's Tap-Dance editor.
 // Each slot: tap action / hold action / double-tap action / tap-hold action.

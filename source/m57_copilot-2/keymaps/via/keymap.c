@@ -112,6 +112,8 @@ enum custom_keycodes {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   // ── LAYER 0: BASE ──────────────────────────────────────────────────────────
+  // Swedish characters via AltGr (Right Alt) — no OS layout change needed:
+  //   AltGr + [  (after P)  → å      AltGr + ;  (after L)  → ö      AltGr + '  (after ;) → ä
   [LAYER_BASE] = LAYOUT(
    //,-------------------------------------------------------------.     ,-------------------------------------------------------------.
      KC_ESC,  KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,   KC_8,    KC_9,   KC_0,    KC_BSPC,
@@ -204,15 +206,11 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
 // COMBOS
 // ============================================================
 
-// J + K simultaneously → Esc  (vim-style insert-mode escape)
-const uint16_t PROGMEM combo_jk[] = {KC_J, KC_K, COMBO_END};
+// No compile-time combos defined.
+// Use Vial's Combo editor (8 runtime slots) to add combos without reflashing.
 
-combo_t key_combos[COMBO_COUNT] = {
-    COMBO(combo_jk, KC_ESC),
-};
-
-
-// ============================================================
+const uint16_t PROGMEM combo_placeholder[] = {COMBO_END};
+combo_t key_combos[COMBO_COUNT] = {};
 
 
 // ============================================================
@@ -618,6 +616,13 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
                 user_config.os_type = (user_config.os_type == 0)
                     ? OS_COUNT - 1
                     : user_config.os_type - 1;
+            }
+            // Keep unicode input method in sync with the newly selected OS.
+            switch ((os_type_t)user_config.os_type) {
+                case OS_MAC:     unicode_input_mode_set(UNICODE_MODE_MACOS); break;
+                case OS_LINUX:
+                case OS_ANDROID: unicode_input_mode_set(UNICODE_MODE_LINUX); break;
+                default:         unicode_input_mode_set(UNICODE_MODE_WIN);   break;
             }
             LOG(DEBUG_INFO, "[ENC] OS=%d", user_config.os_type);
         }
