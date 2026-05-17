@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## working conventions
+
+**context switching:** when the user says `cd X`, treat it as a project context switch — that folder becomes the working root for the rest of the conversation. Resolve typos in project/folder names quietly (e.g. `m57_cloude` → `m57_claude`) without asking for confirmation.
+
+**handoff documents are versioned, never overwritten:** each revision gets a new version suffix (`_v1`, `_v2`, …). When updating a handoff doc, create a new file — don't edit the previous version in place.
+
+**always read the handoff doc before touching the claude keymap:** if a handoff doc exists for the project, read it first. Don't copy files or patch code without consulting it.
+
+**implementation workflow — follow this order every time:**
+1. analyze current state
+2. write or update handoff doc (new version)
+3. implement from scratch based on handoff doc
+4. run sanity check
+5. run code quality assessment
+6. run comment audit and apply improvements
+7. commit all changes with a descriptive message (see git rule below)
+
+Steps 4–6 are defaults, not optional — run them without being asked.
+
+**git: commit when implementation is complete:** after all workflow steps are done, stage all changed files. Before committing, compose a descriptive commit message, show it to the user, and ask for approval. Wait for the user to accept or provide edits before running `git commit`. Always include the Co-authored-by trailer:
+```
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>
+```
+
+## script logging
+
+Before executing any inline PowerShell (`.ps1`) or Python (`.py`) script, save it as a named file in `C:\Users\KSCHULZ1\Code\borne-m57-firmware\cloude-files\`, then run it from there. Use a descriptive filename (e.g., `sanity_check.ps1`, `verify_json.py`). This applies to all scripts in any m57-related project.
+
 ## what this is
 
 qmk/vial firmware drop-in for a split keyboard called **borne** (variant `m57`, based on foostan/crkbd/corne). not a standalone buildable project - it's a keyboard directory that gets copied into a qmk tree and built from there.
