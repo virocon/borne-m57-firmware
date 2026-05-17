@@ -12,10 +12,6 @@
  * Slots are stored in EEPROM — increasing counts costs EEPROM space.
  * Decrease if approaching the DYNAMIC_KEYMAP_EEPROM_MAX_ADDR limit (4095 bytes). */
 
-/* Hardcoded compile-time combos in keymap.c.  Set to 0 — all combos are managed
- * at runtime via Vial's Combo editor (VIAL_COMBO_ENTRIES slots below). */
-#define COMBO_COUNT 0
-
 /* Tap-Dance slots in Vial's Tap-Dance editor.
  * Each slot has four configurable actions: tap / hold / double-tap / tap-hold. */
 #define VIAL_TAP_DANCE_ENTRIES 8
