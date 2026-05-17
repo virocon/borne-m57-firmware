@@ -28,7 +28,7 @@ Use when adding to or modifying an existing implementation.
 4. run code quality assessment
 5. commit all changes (see git rule below)
 
-Steps 3–4 in workflow B and steps 4–6 in workflow A are defaults — run them without being asked.
+Steps 3–4 in workflow B and steps 4–6 in workflow A are **mandatory — never skip any step, regardless of how small the change is**.
 
 **git: commit when implementation is complete:** after all workflow steps are done, stage all changed files. Before committing, compose a descriptive commit message, show it to the user, and ask for approval. Wait for the user to accept or provide edits before running `git commit`. Always include the Co-authored-by trailer:
 ```
