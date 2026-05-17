@@ -40,7 +40,7 @@ ENCODER_MAP_ENABLE = yes
 
 # Combo: required even with zero hardcoded combos so that Vial's runtime Combo editor
 # (8 slots, VIAL_COMBO_ENTRIES in config.h) is available without reflashing.
-# Hardcoded count is controlled by COMBO_COUNT — set to 0 here.
+# Storage (key_combos[]) is provided by quantum/vial.c — do not redefine COMBO_COUNT.
 COMBO_ENABLE = yes
 
 # Tap-Dance: one key → different actions on tap / hold / double-tap / tap-hold.
