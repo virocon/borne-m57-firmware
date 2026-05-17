@@ -1,0 +1,48 @@
+name: Build m57_claude
+
+# Triggers:
+#   - push/PR that touches the keyboard source or this workflow file
+#   - manual trigger from GitHub Actions tab (workflow_dispatch)
+on:
+  push:
+    paths:
+      - 'keyboards/m57_claude/**'
+      - '.github/workflows/build-m57-claude.yml'
+  pull_request:
+    paths:
+      - 'keyboards/m57_claude/**'
+      - '.github/workflows/build-m57-claude.yml'
+  workflow_dispatch:
+
+# Cancel any in-progress run for the same branch when a new one starts.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build m57_claude:via
+    runs-on: ubuntu-latest
+    # Use the same pinned QMK CLI container as the upstream vial-qmk ci.yml.
+    container: ghcr.io/qmk/qmk_cli@sha256:2dc05fc9f32efebd6b05c2b8676ee548358bc7e151e9dbf4dac6b6eed4513b07
+
+    steps:
+      - name: Checkout vial-qmk fork
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive   # required — QMK uses lib/chibios and other submodules
+
+      - name: Build m57_claude:via
+        run: |
+          git config --global --add safe.directory $(pwd)
+          qmk compile -kb m57_claude -km via
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: m57_claude_via_${{ github.sha }}
+          # QMK writes the .uf2 into the repo root
+          path: '*.uf2'
+          if-no-files-found: error
+          retention-days: 30
