@@ -1,5 +1,20 @@
 #include "m57.h"
 
+/* ============================================================
+ * m57.c — keyboard-level C implementation
+ * ============================================================
+ * Contains two things:
+ *
+ * 1. g_led_config — maps the 10×7 unified matrix to 58 physical LED
+ *    positions and their flags.  Rows 0-4 = left half (LEDs 0-28),
+ *    rows 5-9 = right half (LEDs 29-57).  NO_LED marks matrix positions
+ *    that have no under-key LED (encoder keys, corner slots).
+ *
+ * 2. bootloader_jump() — PlumBL soft-entry override.  Writes the magic
+ *    value to SRAM and triggers a reset, causing the PlumBL bootloader
+ *    to enter DFU/mass-storage mode on the next boot.
+ * ============================================================ */
+
 #ifdef RGB_MATRIX_ENABLE
 
 /*
